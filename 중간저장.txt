@@ -1,0 +1,214 @@
+1
+2
+3
+4
+5
+SELECT *
+  FROM INFORMATION_SCHEMA.COLUMNS
+ WHERE TABLE_CATALOG = 'test'
+   AND TABLE_NAME    = "_SayingToTag
+ ORDER BY ORDINAL_POSITION;
+
+select S.id , count(S.id) as num from "Saying" as S, "_SayingToTag" as R where S."id" = R."A" and (R."B"=5 or R."B"=3) group by S.id having count(S.id) >=1;
+
+
+with CTE as (
+select S.id 
+from "Saying" as S, "_SayingToTag" as R 
+where S."id" = R."A" and (R."B"=5) 
+group by S.id 
+having count(S.id) >=1
+)
+with LNUM as(
+select T.id
+from "Like" as 
+
+)
+
+with CTE as(
+select T.id, count(T.id) as likenum
+from "Like" as L,
+(select S.id 
+from "Saying" as S, "_SayingToTag" as R 
+where S."id" = R."A" and (R."B"=5) 
+group by S.id 
+having count(S.id) >=1) as T
+where L."sayingId" = T.id
+group by T.id)
+, PER as (select C.id, C.likenum/S.sum as percent
+from CTE as C, (select sum(likenum) from CTE) as S)
+
+select S.*
+from "Saying" as S, PER as P
+where P.id = S.id
+order by random()*(1.0/P.percent)
+limit 1;
+
+
+select T.id
+from "Like" as L,
+(select S.id 
+from "Saying" as S, "_SayingToTag" as R 
+where S."id" = R."A" and (R."B"=3 or R."B"=5) 
+group by S.id 
+having count(S.id) >=2) as T
+where L."sayingId" = T.id
+group by T.id;
+
+select R."B", count(R."B")
+from "_SayingToTag" as R,
+(select L."sayingId" as id
+from "Like" as L 
+where L."userId" = 1
+limit 500) as S
+where R."A" = S.id
+group by R."B"
+
+select R."B" as id, count(R."B")
+from "_SayingToTag" as R,
+(select id
+from "Saying" as S
+where S.userId = 1
+) as S
+where R."A" = S.id
+group by R."B"
+
+select T."A" as id , 5*count(*) as count
+from "_TagToUser" as T
+where T."B" = 1
+group by(T."A")
+
+select S.id 
+from "Saying" as S, "_SayingToTag" as R 
+where S."id" = R."A" and (R."B" in ${join}) 
+group by S.id 
+having count(S.id) >=1
+
+ const fromLike = await client.like.findMany({ 
+                where:{
+                    userId:loggedUser.id
+                },
+                select:{
+                    sayingId:true
+                },
+                take:500
+            }) 
+            var temp = []
+            for (var i=0;i<fromLike.length;i++){
+                temp.push(fromLike[i].sayingId)
+            }
+            const test2 = await client.tag.findMany({
+                where:{
+                    sayings:{
+                        some:{
+                            id:{
+                                in:temp
+                            }
+                        }
+                    }
+                },
+                select:{
+                    id:true,
+                    sayings:{
+                        where:{
+                            id:{
+                                in:temp
+                            }
+                        },
+                        select:{
+                            id:true
+                        }
+                    }
+                }
+                
+            })
+            const tagNum = 10
+            var num = -1;
+            var choiceTag = []
+            console.log("test2결과",test2);
+
+
+            for(var i =0; i<tagNum;i++){
+                choiceTag.push(fromlike[randomTag(fromlike)].id);
+                choiceTag = Array.from(new Set(choiceTag))
+                console.log(choiceTag)
+                const tagList = choiceTag.map((index)=>({//group by로 바꾸면 더 성능 좋아질것.
+                tags:{
+                    some:{
+                        id:index
+                    }
+                }}))
+                //console.log("tag",tagList)
+                //console.log(tagList)
+                num = await client.saying.count({
+                    where:{
+                        AND:tagList
+                    }
+                })
+                console.log("num",num);
+                if(num == 0) {
+                    choiceTag.pop();
+                    break;
+                }
+
+            }
+
+
+///////addcsv resolvers.
+
+import parse from"csv-parse/lib/sync"
+import fs from "fs"
+import client from "../client"
+export default {
+    Mutation:{
+        addCSV:async(_,{fileName})=>{
+ 
+            const csv = fs.readFileSync(process.cwd()+`/init/${fileName}`)
+            //console.log(csv.toString())
+            const record = parse(csv.toString())
+            console.log(record)
+            //user, text, tag
+            const all = record.map((row)=>
+            ({
+                author:{
+                    connectOrCreate:{
+                        where:{name:row[0]},
+                        create:{name:row[0]}
+                    }
+                },
+                user:{
+                    connectOrCreate:{
+                        where:{name:"명언"},
+                        create:{name:"명언"}
+                    }
+
+                }
+                ,
+                text:row[1],
+                tags:{
+                    connectOrCreate: JSON.parse(row[2].replaceAll('\'','\"')).map((name)=>({
+                        where:{name},
+                        create:{name}
+                    }))
+                }
+            }) 
+            )
+            console.log(all.length)
+            try{
+                
+                for(var i = 0;i <all.length;i++){
+                console.log(i)
+                await client.saying.create({
+                    data:all[i]
+                })}
+        
+            return{
+                ok:true,
+            }
+         }
+         catch(e){
+             console.log(e)
+         }
+        }
+    }
+}

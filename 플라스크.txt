@@ -1,0 +1,66 @@
+<flask>
+@app.route: 특정주소에접속하면 바로 다음 줄에 있는 함수를 호출하라.
+FLASK_APP : 플라스크 실행전에 꼭 지정해야함. app.py를 자동으로 기본 애플리케이션으로 인식.
+(플라스크 써버 띄워줄때 어떤 py쓸꺼냐 인듯?)
+set FLASK_ENV=development : 개발자모드로 실행(babel이나 그런거했던것처럼 그거임. 오류알려주고, 적용하면 바로 그대로실행해주고... )
+*데코레이터?
+*__init__.py?
+
+2.1 : 
+구조) 
+__init__.py : pybo 부모에서 환경변수 pybo(FLASK_APP = pybo) 로 설정한후 flask run 하면 이거실행.
+models.py : python DB도구인 SQLAlchemy 사용예정. 모델기반으로 db처리하는데, 거기게 사용할 모델 클래스들 정의
+forms.py : WTForms 라이브러리로 서버로 전송된 폼 처리.
+views 디렉토리 : 화면구성에 사용
+static 디렉터리 : css..등 이미지파일 저장.
+templates 디렉터리 : 질문 목록, 질문 상세 등의 HTML
+config.py: 환경변수, db설정
+
+2.2:
+app=Flask(__name__)전역변수하면 나중에 꼬일수도있음. 지역변수가 좋으니 함수화해서실행(앱 팩토리라함)
+플라스크 내부에서 def create_app()을 실행하도록 되어있으니 여기서 app정의.
+*특이사항 : create_app 밖에 app=Flask를 넣고 안에 데코레이터 두면 실행이안됨?? 데코레이터의 문제 or create_app문제??
+
+2.3: 라우트함수
+blueprint : url과 함수를 연동시켜주는거인듯.
+데코레이터 @app.route(/)(애너테이션이라부름):로 관리하는함수 의미 : 이거 뒤에 나온 hello_pybo는 URL /에 매핑된함수
+bp = Blueprint('main'(이름), __name__(모듈명), url_prefix='/') : URL 앞에 기본으로 붙일 접두어.
+플라스크 서버는 local:5000에 열리는데 그거 뒤에 local:5000/ 하면 해당 에너테이션이 붙은 파일(py) 실행
+
+@bp.route('/')
+
+__init__.py에서 create_app수정
+app.register_blueprint(main_views.bp)
+*애너테이션
+
+2.4 DB연동: flask SQLAlchemy, flask migrate이용해서 연동
+*config를 pybo 밖에 꺼내니됐었음?? 아 현재 접속한게 flask라 글쿠나...
+flask db init : DB 초기화 . DB관리하는 초기파일들에 관한내용이 들어있는 migration 디렉토리생성.
+from pybo import db
+class Question(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    subject = db.Column(db.String(200), nullable=False)
+    content = db.Column(db.Text(), nullable=False)
+    create_date = db.Column(db.DateTime(), nullable=False)
+class Answer(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    question_id = db.Column(db.Integer, db.ForeignKey('question.id', ondelete='CASCADE'))
+    question = db.relationship('Question', backref=db.backref('answer_set')) //서로를 참조할수있게해줌.
+    content = db.Column(db.Text(), nullable=False)
+    create_date = db.Column(db.DateTime(), nullable=False)
+db.Integer: 자동값 증가기능도있음.
+
+flask db migarte : 변경에 관한 정보가 들어있는 리비전 파일생성. migration/version에 있음.
+flask db upgrade : 리비전 파일 처리 -> config에서 설정한 경로에 설정한 이름대로 pybo.db가 만들어짐.
+https://docs.sqlalchemy.org/en/13/core/type_basics.html << SQLAlchemy 공식도큐
+ 
+객체만들기 q = Question(...)
+db.session: db와 연결하라는뜻
+db.session.add(q)
+#commit이전에 취소 불능. 취소하려면 db.session.rollback해야함
+db.session.commit()//여기까지해야 실제 db에추가됨
+그 외에 데이터모델 쿼리 : all, get, filter, 각 필드 접근...
+
+<플젝>
+1.이미 존재하는 postgresql DB에 flask 연결 : create_engine 이거쓰면 ㅇㅋ인듯? 북마크 참조. 관련도큐읽어보기.
+2.쿼리만들기 :

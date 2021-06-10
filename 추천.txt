@@ -1,0 +1,130 @@
+prisma 도큐 :
+createMany안에 connect, connectOrcreate는 올수 없음. 
+deleteMany
+aggregate({
+	avg:{
+
+	},
+})
+
+사용자 관심태그 점수 10
+좋아요 태그 관심 1
+태그마다 합산 : %로 나타냄
+랜덤하게 돌려서 하나씩 태그 뽑고,
+태그에 해당하는 것마다 and식으로몇개있는지 살펴보고,
+count 0이 되기전에 있는거 중 랜덤
+
+추천 : prisma 
+
+문장받고 태그 반환하는것.
+
+딥러닝 : 
+추천 : 
+t
+
+<nested write>
+create안에서 realte되는거 만들기가능.
+create함수 결과는 방금 만든거반환한다.
+
+posts안에 createMany, delete ,create같은거 넣을수있는거같은데...
+
+연결된 posts 모두 지우기 : 
+const update = await prisma.user.update({
+  where: {
+    id: 11,
+  },
+  data: {
+    posts: {
+      deleteMany: {},
+    },
+  },
+})
+posts안에 findunique...이렇게 중첩쿼리는 못느는모양인데...더 읽어봐야알듯.
+<filter>
+in예시 : const getUser = await prisma.user.findMany({
+  where: {
+    id: { in: [22, 91, 14, 2, 5] },
+  },
+})
+<Orderby>
+AND로 order 가능(1 > 2 순서로 소팅)
+relation의 필드로 소팅하려면
+generator client {
+  provider        = "prisma-client-js"
+  previewFeatures = ["orderByRelation"]
+}
+
+const posts = await prisma.post.findMany({
+  orderBy: {
+    author: {
+      email: "asc"
+    }
+  }
+})
+<map함수>
+                const tagList = choiceTag.map((num)=>({
+                tags:{
+                    some:{
+                        id:num
+                    }
+                }}))
+<random하게뽑기 js>
+Math.random(): 0<= x <1사이의 수를 뽑음.
+마지막인덱스가 잘 포함안되는경우가많음., Math.floor()
+Math.random().(max-min)+min
+
+<list>
+pop : 마지막 제거
+push 마지막에 끼워넣기
+* prisma views?
+<postgresql에 접근>
+prisma로 만든거 sql shell 에접근해 쿼리입력하는데 반응이없다..??아마 직접 sql shell로 접근하는거 막아놓은거같음.
+* postgresql의 database, schema, table관계
+<primsa random 한계>
+좋아요수를 가지고 random 쿼리는 prisma론 깔끔하게할수없음. 1) 태그에일치하는 명언들의 좋아요수를 계산하고 2)이를 기반으로 랜덤하게 뽑아야하는데 
+이 방법은 무조건 graphql에 중간저장을 해야함. 너무 많은 부담이 될것으로 예상.
+raw 레벨로 직접 postgresql에 접근하는 방법 선택 : 
+* where절에 subquery는 성능이 구린편. groupby having을 이용해 특정 태그 리스트를 포함하는 명언수를 찾을 수 있었음(prisma도 이처럼수정가능!)
+select S.id 
+from "Saying" as S, "_SayingToTag" as R 
+where S."id" = R."A" and (R."B"=5 or R."B"=3) 
+group by S.id 
+having count(S.id) >=2
+
+
+https://www.prisma.io/docs/concepts/components/prisma-client/raw-database-access
+
+const result = await prisma.$queryRaw('SELECT * FROM User;')
+const result = await client.$queryRaw `select * from User where email = ${email} `
+
+update같은건 $executeRaw로 실행,
+executeRaw할때 `${}`이용하려면 ()해야함.
+
+<prisma의 실제 DB관리>
+many to many는 테이블을 하나만듬.
+one 쪽에 해당하는 테이블이 realation유지를 위한 필드 하나 만드는식.
+* 테이블명, 필드명은 앵간하면 " "가 붙여져있다.
+<prisma DB초기화>
+migration 최신꺼지우고 다시 migration
+<ES6 : 쿼리를 JS 문자열로표현할때>
+ " "시 줄바꿈 하면 + 로 문자열 붙이기해줘야함. ` ` backtic을 이용하는게 good(ES6문법)
+
+
+<5/21로직변경 : left outer join>
+태그뽑는건 단 3개
+group by 사용시 해당 컬럼만 select에 올수있음.
+좋아요 0개인것도 뽑히게끔 만드는게 목표.
+
+*현재 2.22버전으로 되어있음. 2.18버전이 원래쓰던거긴한데..이상하면 바꿀것.
+
+*seeFeed typdefs, resolvers 고침.
+# Environment variables declared in this file are automatically made available to Prisma.
+# See the documentation for more detail: https://pris.ly/d/prisma-schema#using-environment-variables
+
+# Prisma supports the native connection string format for PostgreSQL, MySQL and SQLite.
+# See the documentation for all the connection string options: https://pris.ly/d/connection-strings
+
+DATABASE_URL="postgresql://postgres:gmlwns*!12@database-1.clwugm3puitq.ap-northeast-2.rds.amazonaws.com:5432/postgres?schema=public"
+PORT = 4000
+SECRET_KEY = x3NpzYSNvzrLKqnesKkOuIu1vXjh3aIq
+

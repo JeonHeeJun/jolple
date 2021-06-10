@@ -1,0 +1,1 @@
+1-n, 1-1 은 반드시 n쪾에서 authorId 같은 스칼라필드 필요/ @relation(fields :[authorId], references:[id]
